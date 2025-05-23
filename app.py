@@ -1,85 +1,105 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
+from streamlit_extras.switch_page_button import switch_page
+from streamlit_extras.stylable_container import stylable_container
+from streamlit_extras.grid import grid
+from st_clickable_images import clickable_images
 
-# Page config
-st.set_page_config(layout="wide")
+# Load all BU data
+bu_data = {
+    "BU1": pd.read_csv("BU1.csv"),
+    "BU2": pd.read_csv("BU2.csv"),
+    "BU3": pd.read_csv("BU3.csv")
+}
 
-# Load data
-df = pd.read_csv('data.csv')
+# Sidebar filters
+st.sidebar.title("Filter")
+selected_month = st.sidebar.selectbox("Pilih Bulan", ["Jan-25", "Feb-25"])
+selected_bu = st.sidebar.radio("Pilih BU", ["BU1", "BU2", "BU3"])
 
-# Sidebar
-st.sidebar.title('Dashboard Controls')
-selected_month = st.sidebar.slider('Select Month', 1, 12, 1)
-selected_bu = st.sidebar.radio('Select Business Unit', ['BU1', 'BU2', 'BU3'])
+# Load selected BU data
+df = bu_data[selected_bu]
 
-# Main content
-st.title(f'{selected_bu} Performance Dashboard')
+# Filter by selected month
+df = df[df['Bulan'] == selected_month]
 
-# Create 4 columns for the perspectives
-col1, col2, col3, col4 = st.columns(4)
+# Perspective and KPI structure
+perspectives = {
+    "1. Financial": [
+        "Revenue", "Revenue vs Target", "Gross Margin", "Cost per Project", "AR Days"
+    ],
+    "2. Customer & Service": [
+        "Customer Satisfaction (CSAT)", "Net Promoter Score (NPS)", "SLA Achievement Rate",
+        "Average Response Time", "Retention Rate"
+    ],
+    "3. Quality (Product & Service)": [
+        "Defect Rate", "Uptime / System Availability", "Rework Rate",
+        "Resolution Success Rate", "Code Review Coverage"
+    ],
+    "4. Employee Fulfillment": [
+        "Employee Engagement Score", "Attrition Rate", "Training Hours per Employee",
+        "Overtime per FTE", "Internal Promotion Rate"
+    ]
+}
 
-# 1. Financial Perspective
-with col1:
-    st.subheader('Financial')
-    metrics = ['Revenue', 'Revenue vs Target', 'Gross Margin', 'Cost per Project', 'AR Days']
-    for metric in metrics:
-        value = df[(df['BU'] == selected_bu) & (df['Metric'] == metric) & (df['Month'] == selected_month)]['Value'].values
-        value = value[0] if len(value) > 0 else 0
-        if st.button(f'{metric}: {value}', key=f'fin_{metric}'):
-            # Visualization example
-            fig = go.Figure()
-            if metric == 'Revenue':
-                fig = px.bar(df[df['Metric'] == metric], x='Month', y='Value', color='BU', title=f'{metric} Trend')
-            elif metric == 'Revenue vs Target':
-                fig = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=value,
-                    title={'text': metric},
-                    gauge={'axis': {'range': [0, 100]}}
-                ))
+# Header
+st.markdown(f"<h2 style='text-align: center;'>📊 {selected_bu} Performance</h2>", unsafe_allow_html=True)
+
+# Function to create a grid of KPIs per perspective
+def display_kpis(perspective, kpis):
+    st.markdown(f"<h4 style='margin-top: 20px; color: #0f098e'>{perspective}</h4>", unsafe_allow_html=True)
+    cols = st.columns(len(kpis))
+    for col, kpi in zip(cols, kpis):
+        with col:
+            if st.button(kpi, key=kpi):
+                st.session_state['popup_kpi'] = kpi
+                st.session_state['popup_perspective'] = perspective
+
+# Display all perspectives with KPIs
+for perspective, kpis in perspectives.items():
+    display_kpis(perspective, kpis)
+
+# Pop-up simulation (placeholder for modal)
+if 'popup_kpi' in st.session_state:
+    st.markdown("""
+        <style>
+        .popup { position: fixed; top: 10%; left: 10%; width: 80%; height: 80%; background: white; 
+                 border: 2px solid #000; padding: 20px; z-index: 1000; overflow: auto; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); 
+                   z-index: 999; }
+        </style>
+    """, unsafe_allow_html=True)
+    st.markdown('<div class="overlay"></div>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="popup">', unsafe_allow_html=True)
+        st.markdown(f"### {st.session_state['popup_kpi']} ({selected_bu})")
+
+        # Determine subdivs by perspective and KPI
+        subdivs = []
+        p = st.session_state['popup_perspective']
+        k = st.session_state['popup_kpi']
+        if p == "1. Financial":
+            subdivs = ["PRODEV", "PD1", "PD2", "DOCS", "ITS", "CHAPTER"]
+        elif p == "2. Customer & Service":
+            subdivs = ["PRODEV", "PD1", "PD2", "DOCS"]
+        elif p == "3. Quality (Product & Service)":
+            subdivs = ["ITS"] if k == "Uptime / System Availability" else ["PRODEV", "PD1", "PD2", "DOCS"]
+        elif p == "4. Employee Fulfillment":
+            subdivs = ["CHAPTER"]
+
+        selected_subdiv = st.selectbox("Pilih Subdiv", subdivs)
+        chart_df = df[(df['Perspective'] == p.split('. ')[1]) & (df['KPI'] == k) & (df['Subdiv'] == selected_subdiv)]
+
+        # Dummy chart visualization (replace with real logic)
+        if not chart_df.empty:
+            fig = px.line(chart_df, x="Bulan", y="Value", title=f"Trend {k} ({selected_subdiv})")
             st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Data tidak tersedia untuk KPI dan subdiv ini.")
 
-# 2. Customer & Service
-with col2:
-    st.subheader('Customer & Service')
-    metrics = ['CSAT', 'NPS', 'SLA Achievement Rate', 'Average Response Time', 'Retention Rate']
-    for metric in metrics:
-        value = df[(df['BU'] == selected_bu) & (df['Metric'] == metric) & (df['Month'] == selected_month)]['Value'].values
-        value = value[0] if len(value) > 0 else 0
-        if st.button(f'{metric}: {value}', key=f'cust_{metric}'):
-            fig = px.line(df[df['Metric'] == metric], x='Month', y='Value', color='BU', title=f'{metric} Trend')
-            st.plotly_chart(fig, use_container_width=True)
+        if st.button("Tutup"):
+            del st.session_state['popup_kpi']
+            del st.session_state['popup_perspective']
 
-# 3. Quality
-with col3:
-    st.subheader('Quality')
-    metrics = ['Defect Rate', 'Uptime', 'Rework Rate', 'Resolution Success Rate', 'Code Review Coverage']
-    for metric in metrics:
-        value = df[(df['BU'] == selected_bu) & (df['Metric'] == metric) & (df['Month'] == selected_month)]['Value'].values
-        value = value[0] if len(value) > 0 else 0
-        if st.button(f'{metric}: {value}', key=f'qual_{metric}'):
-            if metric == 'Uptime':
-                fig = px.pie(names=['Uptime', 'Downtime'], values=[value, 100 - value], hole=0.4)
-            else:
-                fig = px.area(df[df['Metric'] == metric], x='Month', y='Value', color='BU', title=f'{metric} Trend')
-            st.plotly_chart(fig, use_container_width=True)
-
-# 4. Employee Fulfillment
-with col4:
-    st.subheader('Employee Fulfillment')
-    metrics = ['Employee Engagement Score', 'Attrition Rate', 'Training Hours per Employee', 'Overtime per FTE', 'Internal Promotion Rate']
-    for metric in metrics:
-        value = df[(df['BU'] == selected_bu) & (df['Metric'] == metric) & (df['Month'] == selected_month)]['Value'].values
-        value = value[0] if len(value) > 0 else 0
-        if st.button(f'{metric}: {value}', key=f'emp_{metric}'):
-            fig = px.bar(df[df['Metric'] == metric], x='Month', y='Value', color='BU', title=f'{metric} Trend')
-            st.plotly_chart(fig, use_container_width=True)
-
-def update_kpi_data(bu, metric, value, month):
-    """Update KPI data for specific BU and metric"""
-    mask = (df['BU'] == bu) & (df['Metric'] == metric) & (df['Month'] == month)
-    df.loc[mask, 'Value'] = value
-    df.to_csv('data.csv', index=False)
-    st.success(f'Data updated for {bu} - {metric}')
+        st.markdown('</div>', unsafe_allow_html=True)
