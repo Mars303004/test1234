@@ -2,23 +2,16 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Load all BU data
-bu_data = {
-    "BU1": pd.read_csv("/mnt/data/BU1.csv"),
-    "BU2": pd.read_csv("/mnt/data/BU2.csv"),
-    "BU3": pd.read_csv("/mnt/data/BU3.csv")
-}
+# Load all BU data from a single CSV
+all_data = pd.read_csv("/mnt/data/data.csv")
 
 # Sidebar filters
 st.sidebar.title("Filter")
-selected_month = st.sidebar.selectbox("Pilih Bulan", ["Jan-25", "Feb-25"])
+selected_month = st.sidebar.selectbox("Pilih Bulan", sorted(all_data['Bulan'].unique()))
 selected_bu = st.sidebar.radio("Pilih BU", ["BU1", "BU2", "BU3"])
 
-# Load selected BU data
-df = bu_data[selected_bu]
-
-# Filter by selected month
-df = df[df['Bulan'] == selected_month]
+# Filter data
+df = all_data[(all_data['BU'] == selected_bu) & (all_data['Bulan'] == selected_month)]
 
 # Perspective and KPI structure
 perspectives = {
