@@ -4,9 +4,9 @@ import plotly.express as px
 
 # Load all BU data
 bu_data = {
-    "BU1": pd.read_csv("BU1.csv"),
-    "BU2": pd.read_csv("BU2.csv"),
-    "BU3": pd.read_csv("BU3.csv")
+    "BU1": pd.read_csv("/mnt/data/BU1.csv"),
+    "BU2": pd.read_csv("/mnt/data/BU2.csv"),
+    "BU3": pd.read_csv("/mnt/data/BU3.csv")
 }
 
 # Sidebar filters
