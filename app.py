@@ -4,234 +4,130 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 
-# =================== Data Dummy Lengkap ===================
+# =================== Style Custom ===================
+st.markdown("""
+<style>
+    .metric-card {
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin: 10px;
+        background: white;
+        border-left: 4px solid #0057c8;
+    }
+    .metric-title {
+        color: #b42020;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #0057c8;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# =================== Data Dummy ===================
 def generate_dummy_data():
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-    subdivisions = ['PRODEV', 'PD1', 'PD2', 'DOCS', 'ITS', 'CHAPTER']
-    
-    data = {
-        # Financial Perspective
-        'revenue': {
-            'current': 3.2, 
-            'target': 3.5,
-            'trend': [2.8, 3.0, 3.1, 3.2, 3.3, 3.4],
-            'by_subdiv': {'PRODEV': 1.2, 'PD1': 0.8, 'PD2': 0.7, 'DOCS': 0.5}
+    return {
+        'financial': {
+            'revenue': {'current': 3.2, 'target': 3.5, 'subdiv': {'PRODEV': 1.2, 'PD1': 0.8}},
+            'gross_margin': {'current': 38, 'trend': [35, 36, 37, 38, 38.5, 39]},
+            'ar_days': {'current': 32, 'subdiv': {'PRODEV': 28, 'PD1': 34}}
         },
-        'gross_margin': {
-            'current': 38,
-            'trend': [35, 36, 37, 38, 38.5, 39]
-        },
-        'ar_days': {
-            'current': 32,
-            'trend': [35, 34, 33, 32, 31, 30]
-        },
-        
-        # Customer Perspective
-        'csat': {
-            'current': 4.25,
-            'trend': [4.0, 4.1, 4.2, 4.25, 4.3, 4.35],
-            'by_bu': {'BU1': 4.25, 'BU2': 4.1, 'BU3': 4.0}
-        },
-        'nps': {
-            'current': 42,
-            'trend': [38, 40, 41, 42, 43, 44]
-        },
-        'sla': {
-            'current': 96,
-            'by_bu': {'BU1': 96, 'BU2': 92, 'BU3': 89}
-        },
-        
-        # Quality Perspective
-        'uptime': {
-            'current': 99.95,
-            'by_its': {'ITS1': 99.9, 'ITS2': 99.96, 'ITS3': 99.97}
-        },
-        'defect_rate': {
-            'current': 1.2,
-            'trend': [1.5, 1.4, 1.3, 1.2, 1.1, 1.0]
-        },
-        
-        # Employee Perspective
-        'engagement': {
-            'current': 7.8,
-            'by_chapter': {'Chapter A': 7.5, 'Chapter B': 8.1, 'Chapter C': 7.9}
-        },
-        'attrition': {
-            'current': 8.2,
-            'trend': [9.0, 8.5, 8.3, 8.2, 8.0, 7.8]
+        'customer': {
+            'csat': {'current': 4.25, 'trend': [4.0, 4.1, 4.25, 4.3]},
+            'nps': {'current': 42, 'subdiv': {'PRODEV': 45, 'PD1': 40}}
         }
     }
-    
-    return data
 
-# =================== Visualisasi ===================
-def create_gauge(value, title, min_val, max_val, target=None):
-    fig = go.Figure(go.Indicator(
-        mode = "gauge+number+delta" if target else "gauge+number",
-        value = value,
-        title = {'text': title},
-        delta = {'reference': target} if target else None,
-        gauge = {
-            'axis': {'range': [min_val, max_val]},
-            'bar': {'color': "#0057c8"},
-            'steps': [
-                {'range': [min_val, max_val*0.8], 'color': "#f0f0f0"},
-                {'range': [max_val*0.8, max_val], 'color': "#d3d3d3"}
-            ]
-        }
-    ))
-    return fig
+# =================== Komponen Visual ===================
+def create_metric_card(title, value, comparison=None):
+    html = f"""
+    <div class="metric-card">
+        <div class="metric-title">{title}</div>
+        <div class="metric-value">{value}</div>
+        {f'<div style="color:{"#00aa00" if "+" in comparison else "#b42020"}">{comparison}</div>' if comparison else ''}
+    </div>
+    """
+    return st.markdown(html, unsafe_allow_html=True)
 
-def create_radar_chart(data, categories, title):
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=list(data.values()),
-        theta=categories,
-        fill='toself',
-        line_color='#0057c8'
-    ))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True)), title=title)
-    return fig
-
-# =================== Dashboard ===================
+# =================== Layout Dashboard ===================
 def main():
-    st.set_page_config(layout="wide", page_title="IT Company Dashboard", page_icon="📊")
+    st.set_page_config(layout="wide", page_title="BU1 Dashboard", page_icon="📊")
     data = generate_dummy_data()
     
-    # Sidebar
-    with st.sidebar:
-        st.header("Filters")
-        selected_month = st.selectbox("Month", ["Jan", "Feb", "Mar", "Apr", "May", "Jun"])
-        selected_bu = st.radio("Business Unit", ["BU1", "BU2", "BU3"])
-    
     # Header
-    st.markdown(f"<h1 style='color:#0057c8;'>{selected_bu} Performance</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color:#0057c8; border-bottom: 2px solid #b42020; padding-bottom:10px'>BU1 Performance</h1>", 
+               unsafe_allow_html=True)
     
     # ========== Financial Perspective ==========
     with st.container():
-        st.subheader("📈 Financial Perspective")
-        cols = st.columns(5)
+        st.subheader("💰 Financial Perspective")
+        cols = st.columns(4)
         
-        # Revenue
         with cols[0]:
-            st.metric("Revenue", f"${data['revenue']['current']}M", "+15% vs LV")
-            if st.button("📊 Revenue", key="rev_btn"):
-                st.session_state.selected_kpi = 'revenue'
+            if create_metric_card("Revenue", "$3.2M", "+15% vs LV"):
+                with st.expander("", expanded=True):
+                    tabs = st.tabs(["PRODEV", "PD1", "PD2"])
+                    with tabs[0]:
+                        fig = px.bar(x=["Q1", "Q2", "Q3"], y=[1.0, 1.2, 1.4])
+                        st.plotly_chart(fig, use_container_width=True)
         
-        # Gross Margin
         with cols[1]:
-            st.metric("Gross Margin", f"{data['gross_margin']['current']}%", "+2% vs LV")
-            if st.button("📊 Gross Margin", key="gm_btn"):
-                st.session_state.selected_kpi = 'gross_margin'
+            create_metric_card("Gross Margin", "38%", "+2% vs LV")
         
-        # AR Days
         with cols[2]:
-            st.metric("AR Days", data['ar_days']['current'], "-3 days vs LV")
-            if st.button("📊 AR Days", key="ar_btn"):
-                st.session_state.selected_kpi = 'ar_days'
+            create_metric_card("AR Days", "32", "-3 days")
         
-        # Revenue vs Target
         with cols[3]:
-            fig = create_gauge(
-                (data['revenue']['current']/data['revenue']['target'])*100,
-                "Revenue vs Target",
-                0,
-                120,
-                100
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Trend Chart
-        with cols[4]:
-            fig = px.line(
-                x=["Jan","Feb","Mar","Apr","May","Jun"],
-                y=data['revenue']['trend'],
-                title="Revenue Trend"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
+            create_metric_card("Cost/Project", "$42K", "+5%")
+
     # ========== Customer Perspective ==========
     with st.container():
         st.subheader("👥 Customer & Service")
-        cols = st.columns(5)
+        cols = st.columns(3)
         
-        # CSAT
         with cols[0]:
-            st.metric("CSAT", data['csat']['current'], "+0.3 vs LV")
-            if st.button("📊 CSAT", key="csat_btn"):
-                with st.expander("CSAT Details"):
-                    fig = create_radar_chart(
-                        data['csat']['by_bu'],
-                        list(data['csat']['by_bu'].keys()),
-                        "CSAT per BU"
-                    )
-                    st.plotly_chart(fig)
+            create_metric_card("CSAT", "4.25", "+0.3")
         
-        # NPS
         with cols[1]:
-            st.metric("NPS", data['nps']['current'], "+5 vs LV")
-            if st.button("📊 NPS", key="nps_btn"):
-                with st.expander("NPS Trend"):
-                    fig = px.line(
-                        x=months,
-                        y=data['nps']['trend'],
-                        title="NPS Trend"
-                    )
-                    st.plotly_chart(fig)
+            create_metric_card("NPS", "42", "+5")
         
-        # SLA
         with cols[2]:
-            st.metric("SLA Achievement", f"{data['sla']['current']}%", "+5% vs LV")
-        
-        # Retention
-        with cols[3]:
-            st.metric("Retention Rate", "94%", "+5% vs LV")
-        
-        # Response Time
-        with cols[4]:
-            st.metric("Avg Response Time", "2.4h", "-0.8h vs LV")
-    
+            create_metric_card("SLA", "96%", "+5%")
+
     # ========== Quality Perspective ==========
     with st.container():
-        st.subheader("⚙️ Quality Perspective")
-        cols = st.columns(4)
+        st.subheader("⚙️ Quality Metrics")
+        cols = st.columns(3)
         
-        # Uptime
         with cols[0]:
-            st.metric("System Uptime", f"{data['uptime']['current']}%", "+0.5% vs LV")
+            create_metric_card("Uptime", "99.95%", "+0.5%")
         
-        # Defect Rate
         with cols[1]:
-            st.metric("Defect Rate", f"{data['defect_rate']['current']}%", "-0.5% vs LV")
+            create_metric_card("Defect Rate", "1.2%", "-0.5%")
         
-        # Resolution Rate
         with cols[2]:
-            st.metric("Resolution Success", "97.2%", "+1.5% vs LV")
-        
-        # Rework Rate
-        with cols[3]:
-            st.metric("Rework Rate", "3.8%", "-0.6% vs LV")
-    
+            create_metric_card("Resolution", "97.2%", "+1.5%")
+
     # ========== Employee Perspective ==========
     with st.container():
         st.subheader("👨💻 Employee Fulfillment")
         cols = st.columns(4)
         
-        # Engagement
         with cols[0]:
-            st.metric("Engagement Score", data['engagement']['current'], "-0.4 vs LV")
+            create_metric_card("Engagement", "7.8/10", "-0.4")
         
-        # Attrition
         with cols[1]:
-            st.metric("Attrition Rate", f"{data['attrition']['current']}%", "+1.5% vs LV")
+            create_metric_card("Attrition", "8.2%", "+1.5%")
         
-        # Training Hours
         with cols[2]:
-            st.metric("Training Hours", "42h", "+9% vs LV")
+            create_metric_card("Training", "42h", "+9%")
         
-        # Overtime
         with cols[3]:
-            st.metric("Overtime", "3.2h", "+8.8h vs LV")
+            create_metric_card("Overtime", "3.2h", "+8.8h")
 
 if __name__ == "__main__":
     main()
