@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from streamlit_extras.grid import grid
-from st_clickable_images import clickable_images
 
 # Load all BU data
 bu_data = {
